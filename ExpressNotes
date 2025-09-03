@@ -1,0 +1,148 @@
+// ----------------------------------------------------------
+// 🟠 EXPRESS.JS FULL NOTES
+// ----------------------------------------------------------
+
+// 0. Introduction to Express.js
+// - Node.js has a built-in `http` module → powerful but low-level.
+// - You must handle everything manually (routes, methods, parsing, headers).
+// - This becomes complicated quickly.
+// - A framework like Express provides structure & reusable tools.
+
+// ----------------------------------------------------------
+// 1. What is Express.js?
+// ----------------------------------------------------------
+// - Express.js = Fast, minimalist, flexible web framework for Node.js
+// - Built on top of Node.js `http` module
+// - Makes building servers & APIs much easier
+
+// Analogy:
+// - Node.js http module → raw engine + wheels (hard to build a car)
+// - Express.js → pre-built chassis + steering (easy to drive a car)
+
+// Advantages:
+// - Simplified Routing
+// - Organized & Scalable structure
+// - Handles async requests efficiently
+// - Easy database integration
+
+// ----------------------------------------------------------
+// 2. Project Setup
+// ----------------------------------------------------------
+// 1. Create folder
+// 2. Run: npm init -y
+// 3. Install express: npm install express
+// 4. Create index.js
+
+// ----------------------------------------------------------
+// 3. Building Your First Express Server
+// ----------------------------------------------------------
+
+const express = require('express')   // Import Express
+const app = express()                // Create app instance
+const PORT = process.env.PORT || 3000  // Define port
+
+// Middleware (for parsing request body)
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+// Basic route
+app.get('/', (req, res) => {
+  res.send('Hello from Express!')
+})
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`)
+})
+
+/*
+📌 NOTES:
+- require('express') → import library
+- express() → create app instance
+- app.get(path, callback) → GET route
+- app.listen(PORT) → start server
+*/
+
+// ----------------------------------------------------------
+// 4. Routing with GET
+// ----------------------------------------------------------
+// - GET = fetch data (safe, idempotent)
+// - Static routes → fixed path (/about)
+// - Dynamic routes → variable path (/users/:id)
+
+// Example Routes:
+
+// Static route
+app.get('/about', (req, res) => {
+  res.send('About page')
+})
+
+// Dynamic route (single param)
+app.get('/users/:id', (req, res) => {
+  res.send(`User ID is: ${req.params.id}`)
+})
+
+// Named param
+app.get('/users/:userId', (req, res) => {
+  res.send(`User ID is: ${req.params.userId}`)
+})
+
+// Multiple params
+app.get('/shops/:shopId/items/:itemId', (req, res) => {
+  const { shopId, itemId } = req.params
+  res.send(`Shop: ${shopId}, Item: ${itemId}`)
+})
+
+/*
+📌 NOTES:
+- req.params → captures dynamic route values
+- Example: /users/42 → req.params.id = "42"
+*/
+
+// ----------------------------------------------------------
+// 5. Handling Request Data
+// ----------------------------------------------------------
+// A) Route Parameters (req.params)
+// Example: /users/:userId
+app.get('/users/:userId', (req, res) => {
+  res.send(`User ID: ${req.params.userId}`)
+})
+
+// B) Query Parameters (req.query)
+// Example: /search?term=node&limit=10
+app.get('/search', (req, res) => {
+  const { term, limit } = req.query
+  res.send(`Search Term: ${term}, Limit: ${limit}`)
+})
+
+/*
+📌 NOTES:
+- req.params → required identifiers in URL (/users/123)
+- req.query → optional filters (/search?term=node)
+*/
+
+// ----------------------------------------------------------
+// 6. Sending JSON Responses
+// ----------------------------------------------------------
+// - APIs usually return JSON
+// - Use res.json() instead of res.send()
+// - Can set status with res.status()
+
+// Example: Returning JSON
+app.get('/api/user/:id', (req, res) => {
+  const user = {
+    id: req.params.id,
+    name: "Alice",
+    role: "Student"
+  }
+  res.status(200).json(user) // Sends JSON with status 200
+})
+
+/*
+📌 Common Status Codes:
+- 200 OK → success
+- 201 Created → new resource created
+- 400 Bad Request → invalid data
+- 404 Not Found → resource missing
+- 500 Internal Server Error → server issue
+*/
