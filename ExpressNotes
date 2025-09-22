@@ -1,148 +1,143 @@
 // ----------------------------------------------------------
-// 🟠 EXPRESS.JS FULL NOTES
+// 🟠 EXPRESS.JS FULL NOTES + CRUD EXAMPLE
 // ----------------------------------------------------------
 
 // 0. Introduction to Express.js
-// - Node.js has a built-in `http` module → powerful but low-level.
-// - You must handle everything manually (routes, methods, parsing, headers).
-// - This becomes complicated quickly.
-// - A framework like Express provides structure & reusable tools.
+// Node.js has a built-in http module → powerful but low-level
+// Express.js = Fast, minimalist, flexible web framework for Node.js
+// Makes building servers & APIs much easier
 
 // ----------------------------------------------------------
-// 1. What is Express.js?
+// 1. Project Setup
 // ----------------------------------------------------------
-// - Express.js = Fast, minimalist, flexible web framework for Node.js
-// - Built on top of Node.js `http` module
-// - Makes building servers & APIs much easier
-
-// Analogy:
-// - Node.js http module → raw engine + wheels (hard to build a car)
-// - Express.js → pre-built chassis + steering (easy to drive a car)
-
-// Advantages:
-// - Simplified Routing
-// - Organized & Scalable structure
-// - Handles async requests efficiently
-// - Easy database integration
-
-// ----------------------------------------------------------
-// 2. Project Setup
-// ----------------------------------------------------------
-// 1. Create folder
-// 2. Run: npm init -y
-// 3. Install express: npm install express
-// 4. Create index.js
-
-// ----------------------------------------------------------
-// 3. Building Your First Express Server
-// ----------------------------------------------------------
+// npm init -y
+// npm install express mysql2
+// Create index.js
 
 const express = require('express')   // Import Express
+const mysql = require('mysql2')      // Import MySQL library
 const app = express()                // Create app instance
 const PORT = process.env.PORT || 3000  // Define port
 
-// Middleware (for parsing request body)
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// Middleware
+app.use(express.json())                  // Parse JSON bodies
+app.use(express.urlencoded({ extended: true })) // Parse URL-encoded bodies
 
-// Basic route
+// ----------------------------------------------------------
+// 2. Database Connection
+// ----------------------------------------------------------
+const db = mysql.createConnection({
+  host: '127.0.0.1',
+  user: 'root',
+  password: 'Akshat@1346',
+  database: 'babbage_2',
+  port: '3306'
+})
+
+db.connect(error => {
+  if (error) {
+    console.log('Some error occurred!', error)
+  } else {
+    console.log('DB Connected Successfully.')
+  }
+})
+
+// ----------------------------------------------------------
+// 3. Basic Routes & Routing Notes
+// ----------------------------------------------------------
+
+// Static route
 app.get('/', (req, res) => {
   res.send('Hello from Express!')
 })
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
-
-/*
-📌 NOTES:
-- require('express') → import library
-- express() → create app instance
-- app.get(path, callback) → GET route
-- app.listen(PORT) → start server
-*/
-
-// ----------------------------------------------------------
-// 4. Routing with GET
-// ----------------------------------------------------------
-// - GET = fetch data (safe, idempotent)
-// - Static routes → fixed path (/about)
-// - Dynamic routes → variable path (/users/:id)
-
-// Example Routes:
-
-// Static route
 app.get('/about', (req, res) => {
   res.send('About page')
 })
 
-// Dynamic route (single param)
+// Dynamic route (route params)
 app.get('/users/:id', (req, res) => {
   res.send(`User ID is: ${req.params.id}`)
 })
 
-// Named param
-app.get('/users/:userId', (req, res) => {
-  res.send(`User ID is: ${req.params.userId}`)
-})
-
-// Multiple params
-app.get('/shops/:shopId/items/:itemId', (req, res) => {
-  const { shopId, itemId } = req.params
-  res.send(`Shop: ${shopId}, Item: ${itemId}`)
-})
-
-/*
-📌 NOTES:
-- req.params → captures dynamic route values
-- Example: /users/42 → req.params.id = "42"
-*/
-
-// ----------------------------------------------------------
-// 5. Handling Request Data
-// ----------------------------------------------------------
-// A) Route Parameters (req.params)
-// Example: /users/:userId
-app.get('/users/:userId', (req, res) => {
-  res.send(`User ID: ${req.params.userId}`)
-})
-
-// B) Query Parameters (req.query)
-// Example: /search?term=node&limit=10
+// Query parameters example
 app.get('/search', (req, res) => {
   const { term, limit } = req.query
   res.send(`Search Term: ${term}, Limit: ${limit}`)
 })
 
-/*
-📌 NOTES:
-- req.params → required identifiers in URL (/users/123)
-- req.query → optional filters (/search?term=node)
-*/
+// ----------------------------------------------------------
+// 4. CRUD API with MySQL
+// ----------------------------------------------------------
+
+// A) Get all users
+app.get('/users', (req, res) => {
+  const query = 'SELECT * FROM users'
+  db.query(query, (error, results) => {
+    if (error) res.status(500).json({ message: 'Something went wrong!' })
+    else res.status(200).json(results)
+  })
+})
+
+// B) Get user by ID
+app.get('/users/:id', (req, res) => {
+  const userId = req.params.id
+  const query = 'SELECT * FROM users WHERE id = ?'
+  db.query(query, [userId], (error, results) => {
+    if (error) res.status(500).json({ message: 'Something went wrong!' })
+    else if (results.length === 0) res.status(404).json({ message: 'User not found' })
+    else res.status(200).json(results[0])
+  })
+})
+
+// C) Create a new user
+app.post('/users', (req, res) => {
+  const { name, email, password } = req.body
+  const query = 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)'
+  db.query(query, [name, email, password], (error, results) => {
+    if (error) res.status(500).json({ message: 'Error creating user', error })
+    else res.status(201).json({ message: 'User created', userId: results.insertId })
+  })
+})
+
+// D) Update user by ID
+app.put('/users/:id', (req, res) => {
+  const userId = req.params.id
+  const { name, email, password } = req.body
+  const query = 'UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?'
+  db.query(query, [name, email, password, userId], (error, results) => {
+    if (error) res.status(500).json({ message: 'Error updating user', error })
+    else if (results.affectedRows === 0) res.status(404).json({ message: 'User not found' })
+    else res.status(200).json({ message: 'User updated' })
+  })
+})
+
+// E) Delete user by ID
+app.delete('/users/:id', (req, res) => {
+  const userId = req.params.id
+  const query = 'DELETE FROM users WHERE id = ?'
+  db.query(query, [userId], (error, results) => {
+    if (error) res.status(500).json({ message: 'Error deleting user', error })
+    else if (results.affectedRows === 0) res.status(404).json({ message: 'User not found' })
+    else res.status(200).json({ message: 'User deleted' })
+  })
+})
 
 // ----------------------------------------------------------
-// 6. Sending JSON Responses
+// 5. Start Server
 // ----------------------------------------------------------
-// - APIs usually return JSON
-// - Use res.json() instead of res.send()
-// - Can set status with res.status()
-
-// Example: Returning JSON
-app.get('/api/user/:id', (req, res) => {
-  const user = {
-    id: req.params.id,
-    name: "Alice",
-    role: "Student"
-  }
-  res.status(200).json(user) // Sends JSON with status 200
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`)
 })
 
 /*
-📌 Common Status Codes:
-- 200 OK → success
-- 201 Created → new resource created
-- 400 Bad Request → invalid data
-- 404 Not Found → resource missing
-- 500 Internal Server Error → server issue
+📌 Notes Recap:
+- app.get/post/put/delete → HTTP methods for routing
+- req.params → route parameters
+- req.query → query string parameters
+- req.body → POST/PUT data (needs express.json())
+- res.send() → send text/html
+- res.json() → send JSON
+- res.status(code) → set HTTP status
+- Status codes: 200 OK, 201 Created, 400 Bad Request, 404 Not Found, 500 Server Error
 */
